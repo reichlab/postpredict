@@ -41,34 +41,47 @@ class TimeDependencePostprocessor(abc.ABC):
         """
 
 
-    def transform(self, model_out, horizon_col="horizon", pred_col = "value", idx_col = "output_type_id"):
+    def transform(self, model_out: pl.DataFrame,
+                  reference_time_col: str = "reference_date",
+                  horizon_col: str = "horizon", pred_col: str = "value",
+                  idx_col: str = "output_type_id"):
         """
         Apply a postprocessing transformation to sample predictions to induce
         dependence across time in the predictive samples.
         
         Parameters
         ----------
-        model_out: polars dataframe with sample predictions that do not
-        necessarily capture temporal dependence.
-        horizon_col: name of column in model_out that records the prediction horizon
-        pred_col: name of column in model_out with predicted values (samples)
-        idx_col: name of column in model_out with sample indices
+        model_out: pl.DataFrame
+            polars dataframe with sample predictions that do not necessarily
+            capture temporal dependence.
+        reference_time_col: str
+            name of column in model_out that records the reference time for
+            predictions
+        horizon_col: str
+            name of column in model_out that records the prediction horizon
+        pred_col: str
+            name of column in model_out with predicted values (samples)
+        idx_col: str
+            name of column in model_out with sample indices
         
         Returns
         -------
         A copy of the model_out parameter, with sample indices updated so that
         they reflect the estimated temporal dependence structure.
         """
-        # pivot model_out from long to wide format and extract train_X and train_Y
-        wide_model_out = self._pivot_horizon(model_out, horizon_col, idx_col, pred_col)
+        # pivot model_out from long to wide format
+        wide_model_out = self._pivot_horizon(model_out, reference_time_col,
+                                             horizon_col, idx_col, pred_col)
         min_horizon = model_out[horizon_col].min()
         max_horizon = model_out[horizon_col].max()
+        
+        # extract train_X and train_Y from observed data (self.df)
         self._build_train_X_Y(min_horizon, max_horizon)
         
         # perform the transformation, one group at a time
         transformed_wide_model_out = (
             wide_model_out
-            .group_by(*self.key_cols)
+            .group_by(*(self.key_cols + [reference_time_col]))
             .map_groups(self._transform_one_group)
         )
         
@@ -197,13 +210,14 @@ class TimeDependencePostprocessor(abc.ABC):
         self.train_Y = df_dropnull[self.shift_varnames]
 
 
-    def _pivot_horizon(self, model_out, horizon_col, idx_col, pred_col):
+    def _pivot_horizon(self, model_out, reference_time_col, horizon_col,
+                       idx_col, pred_col):
         """
         Pivot horizon column wider, overwriting sample indices along the way
         to reflect temporal dependence across horizons within key groups.
         """
-        # check that within each group defined by self.key_cols, each horizon
-        # appears the same number of times.
+        # check that within each group defined by self.key_cols and
+        # reference_time_col, each horizon appears the same number of times.
         min_horizon = model_out[horizon_col].min()
         max_horizon = model_out[horizon_col].max()
         expected_horizons = list(range(min_horizon, max_horizon + 1))
@@ -212,14 +226,14 @@ class TimeDependencePostprocessor(abc.ABC):
         # with the prefix "postpredict_"
         horizon_counts = (
             model_out
-            .group_by(self.key_cols + [horizon_col])
+            .group_by(self.key_cols + [reference_time_col, horizon_col])
             .agg(pl.col(horizon_col).len().alias("postpredict_horizon_count"))
         )
         
         # all horizons from min_horizon to max_horizon are present within all key_col groups
         all_groups_match_expected = (
-            horizon_counts[self.key_cols + [horizon_col]]
-            .group_by(self.key_cols)
+            horizon_counts[self.key_cols + [reference_time_col, horizon_col]]
+            .group_by(self.key_cols + [reference_time_col])
             .all()
             .with_columns(
                 pl.col(horizon_col)
@@ -231,21 +245,21 @@ class TimeDependencePostprocessor(abc.ABC):
         if not all_groups_match_expected:
             raise ValueError("Within each key group, model_out must contain predictions at all integer horizons from the smallest to the largest present.")
 
-        # within each key_col group, each horizon appears the same number of times
+        # within each key_col and reference_time group, each horizon appears the same number of times
         n_unique_horizon_counts = (
-            horizon_counts[self.key_cols + ["postpredict_horizon_count"]]
+            horizon_counts[self.key_cols + [reference_time_col, "postpredict_horizon_count"]]
             .group_by(self.key_cols)
             .n_unique()
             ["postpredict_horizon_count"]
         )
         if any(n_unique_horizon_counts > 1):
-            raise ValueError("Within each key group, model_out must contain the same numer of predictions for each horizon.")
+            raise ValueError("Within each key and reference_time group, model_out must contain the same numer of predictions for each horizon.")
 
-        # replace sample indices to have repeated values across horizons within each key group,
+        # replace sample indices to have repeated values across horizons within each key and reference_time group,
         # no repeated values across key groups
         horizon_count_by_group = (
-            horizon_counts[self.key_cols + ["postpredict_horizon_count"]]
-            .group_by(self.key_cols)
+            horizon_counts[self.key_cols + [reference_time_col, "postpredict_horizon_count"]]
+            .group_by(self.key_cols + [reference_time_col])
             .agg(pl.col("postpredict_horizon_count").first())
         )
         model_out = (
@@ -254,14 +268,14 @@ class TimeDependencePostprocessor(abc.ABC):
                 horizon_count_by_group.with_columns(
                     postpredict_horizon_cum_count = pl.col("postpredict_horizon_count").cum_sum() - pl.col("postpredict_horizon_count")
                 ),
-                on = self.key_cols
+                on = self.key_cols + [reference_time_col]
             )
             .with_columns(
                 output_type_id = pl.arange(
                     pl.col("postpredict_horizon_cum_count").first(),
                     pl.col("postpredict_horizon_cum_count").first() + pl.col("postpredict_horizon_count").first()
                 )
-                .over(self.key_cols + [horizon_col])
+                .over(self.key_cols + [reference_time_col, horizon_col])
             )
             .drop(["postpredict_horizon_count", "postpredict_horizon_cum_count"])
         )

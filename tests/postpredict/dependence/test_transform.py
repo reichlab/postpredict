@@ -32,6 +32,7 @@ def test_transform(obs_data, long_model_out, templates, long_expected_final, mon
     # perform the transform operation
     actual_final = tdp.transform(
         model_out=long_model_out,
+        reference_time_col="reference_date",
         horizon_col="horizon",
         pred_col="value",
         idx_col="output_type_id"
@@ -44,13 +45,13 @@ def test_transform(obs_data, long_model_out, templates, long_expected_final, mon
     #
     # In order to check equality with expected results, we force the
     # output_type_id in long_expected_final to start at the index that was used
-    # for actual_final within each location/age_group combination.  To maintain
-    # a valid test that indices are distinct across different location/age_group
-    # combinations, we first check that the minimal index in actual_final is
-    # distinct across the different groups.
+    # for actual_final within each reference_date/location/age_group combination.
+    # To maintain a valid test that indices are distinct across different
+    # location/age_group combinations, we first check that the minimal index in
+    # actual_final is distinct across the different groups.
     assert all(
-        actual_final["location", "age_group", "output_type_id"]
-        .group_by("location", "age_group")
+        actual_final["reference_date", "location", "age_group", "output_type_id"]
+        .group_by("reference_date", "location", "age_group")
         .min()
         ["output_type_id"]
         .value_counts()
@@ -59,23 +60,23 @@ def test_transform(obs_data, long_model_out, templates, long_expected_final, mon
     
     # now, update the indices in the output_type_id column
     min_actual_index = (
-        actual_final["location", "age_group", "output_type_id"]
-        .group_by("location", "age_group")
+        actual_final["reference_date", "location", "age_group", "output_type_id"]
+        .group_by("reference_date", "location", "age_group")
         .min()
         .with_columns(actual_min_output_type_id = pl.col("output_type_id"))
         .drop("output_type_id")
     )
     min_expected_index = (
-        long_expected_final["location", "age_group", "output_type_id"]
-        .group_by("location", "age_group")
+        long_expected_final["reference_date", "location", "age_group", "output_type_id"]
+        .group_by("reference_date", "location", "age_group")
         .min()
         .with_columns(expected_min_output_type_id = pl.col("output_type_id"))
         .drop("output_type_id")
     )
     long_expected_final = (
         long_expected_final
-        .join(min_actual_index, on=["location", "age_group"], how="left")
-        .join(min_expected_index, on=["location", "age_group"], how="left")
+        .join(min_actual_index, on=["reference_date", "location", "age_group"], how="left")
+        .join(min_expected_index, on=["reference_date", "location", "age_group"], how="left")
         .with_columns(
             output_type_id = pl.col("output_type_id") - pl.col("expected_min_output_type_id") + pl.col("actual_min_output_type_id")
         )

@@ -23,7 +23,8 @@ import pytest
 
 @pytest.fixture
 def wide_model_out():
-    wmo_group1 = pl.DataFrame({
+    wmo_group1_time1 = pl.DataFrame({
+        "reference_date": [datetime.strptime("2020-01-15", "%Y-%m-%d")] * 10,
         "location": ["a"] * 10,
         "population": [100.0] * 10,
         "age_group": ["young"] * 10,
@@ -33,23 +34,23 @@ def wide_model_out():
         "horizon2": [9.3, 6.3, 7.9, 7.5, 13.5, 11.8, 8.6, 17.7, 7.2, 12.2],
         "horizon3": [17.6, 15.6, 13.5, 14.2, 18.3, 15.9, 14.5, 23.9, 12.4, 16.3]
     })
-    return pl.concat([
-        wmo_group1,
-        wmo_group1.with_columns(
+    wmo_all_groups_time1 = pl.concat([
+        wmo_group1_time1,
+        wmo_group1_time1.with_columns(
             age_group = pl.lit("old"),
             horizon1 = pl.col("horizon1") + 4.0,
             horizon2 = pl.col("horizon2") + 4.0,
             horizon3 = pl.col("horizon3") + 4.0,
             population = 150.0
         ),
-        wmo_group1.with_columns(
+        wmo_group1_time1.with_columns(
             location = pl.lit("b"),
             horizon1 = pl.col("horizon1") + 12.0,
             horizon2 = pl.col("horizon2") + 12.0,
             horizon3 = pl.col("horizon3") + 12.0,
             population = 200.0
         ),
-        wmo_group1.with_columns(
+        wmo_group1_time1.with_columns(
             location = pl.lit("b"),
             age_group = pl.lit("old"),
             horizon1 = pl.col("horizon1") - 2.0,
@@ -58,6 +59,16 @@ def wide_model_out():
             population = 250.0
         )
     ])
+    wmo = pl.concat([
+        wmo_all_groups_time1,
+        wmo_all_groups_time1.with_columns(
+            reference_date = pl.lit(datetime.strptime("2020-01-22", "%Y-%m-%d")),
+            horizon1 = pl.col("horizon1") + 42.0,
+            horizon2 = pl.col("horizon2") + 42.0,
+            horizon3 = pl.col("horizon3") + 42.0
+        )
+    ])
+    return wmo
 
 @pytest.fixture
 def long_model_out(wide_model_out):
@@ -65,7 +76,7 @@ def long_model_out(wide_model_out):
         wide_model_out
         .unpivot(
             ["horizon1", "horizon2", "horizon3"],
-            index=["location", "population", "age_group", "output_type", "output_type_id"],
+            index=["reference_date", "location", "population", "age_group", "output_type", "output_type_id"],
             variable_name="horizon"
         )
         .with_columns(horizon=pl.col("horizon").str.slice(-1, 1).cast(int))
@@ -88,7 +99,8 @@ def templates():
 
 @pytest.fixture
 def wide_expected_final():
-    ef_group1 = pl.DataFrame({
+    ef_group1_time1 = pl.DataFrame({
+        "reference_date": [datetime.strptime("2020-01-15", "%Y-%m-%d")] * 10,
         "location": ["a"] * 10,
         "population": [100.0] * 10,
         "age_group": ["young"] * 10,
@@ -98,9 +110,9 @@ def wide_expected_final():
         "horizon2": [9.3, 7.2, 6.3, 8.6, 13.5, 17.7, 7.9, 7.5, 11.8, 12.2],
         "horizon3": [14.5, 15.6, 12.4, 16.3, 18.3, 23.9, 14.2, 13.5, 15.9, 17.6]
     })
-    return pl.concat([
-        ef_group1,
-        ef_group1.with_columns(
+    ef_all_groups_time1 = pl.concat([
+        ef_group1_time1,
+        ef_group1_time1.with_columns(
             age_group = pl.lit("old"),
             output_type_id = pl.col("output_type_id") + 10,
             horizon1 = pl.col("horizon1") + 4.0,
@@ -108,7 +120,7 @@ def wide_expected_final():
             horizon3 = pl.col("horizon3") + 4.0,
             population = 150.0
         ),
-        ef_group1.with_columns(
+        ef_group1_time1.with_columns(
             location = pl.lit("b"),
             output_type_id = pl.col("output_type_id") + 20,
             horizon1 = pl.col("horizon1") + 12.0,
@@ -116,7 +128,7 @@ def wide_expected_final():
             horizon3 = pl.col("horizon3") + 12.0,
             population = 200.0
         ),
-        ef_group1.with_columns(
+        ef_group1_time1.with_columns(
             location = pl.lit("b"),
             age_group = pl.lit("old"),
             output_type_id = pl.col("output_type_id") + 30,
@@ -126,6 +138,16 @@ def wide_expected_final():
             population = 250.0
         )
     ])
+    ef = pl.concat([
+        ef_all_groups_time1,
+        ef_all_groups_time1.with_columns(
+            reference_date = pl.lit(datetime.strptime("2020-01-22", "%Y-%m-%d")),
+            horizon1 = pl.col("horizon1") + 42.0,
+            horizon2 = pl.col("horizon2") + 42.0,
+            horizon3 = pl.col("horizon3") + 42.0
+        )
+    ])
+    return ef
 
 @pytest.fixture
 def long_expected_final(wide_expected_final):
@@ -133,7 +155,7 @@ def long_expected_final(wide_expected_final):
         wide_expected_final
         .unpivot(
             ["horizon1", "horizon2", "horizon3"],
-            index=["location", "population", "age_group", "output_type", "output_type_id"],
+            index=["reference_date", "location", "population", "age_group", "output_type", "output_type_id"],
             variable_name="horizon"
         )
         .with_columns(horizon=pl.col("horizon").str.slice(-1, 1).cast(int))

@@ -1,5 +1,6 @@
 # Tests for postpredict.dependence.TimeDependencePostprocessor._pivot_horizon
 
+from datetime import datetime
 from itertools import product
 
 import numpy as np
@@ -22,21 +23,34 @@ def test_pivot_horizon_positive_horizon(long_model_out, monkeypatch):
     tdp.feat_cols = ["location", "age_group", "population"]
     wide_model_out = tdp._pivot_horizon(
         model_out=long_model_out,
+        reference_time_col="reference_date",
         horizon_col="horizon",
         idx_col="output_type_id",
         pred_col="value"
     )
     
-    # expected columns: everything in tdp.key_cols + tdp.feat_cols + "output_type" + "output_type_id" + f"postpredict_horizon{h}"
-    expected_cols = set(tdp.key_cols + tdp.feat_cols + ["output_type", "output_type_id"] + [f"postpredict_horizon{h}" for h in range(1, 4)])
+    # expected columns
+    expected_cols = set(tdp.key_cols + tdp.feat_cols +
+                        ["reference_date", "output_type", "output_type_id"] +
+                        [f"postpredict_horizon{h}" for h in range(1, 4)])
     assert set(wide_model_out.columns) == expected_cols
     
     # same values within each horizon/group
-    for location, age_group, h in product(["a", "b"], ["young", "old"], range(1, 4)):
+    group_horizon_iterable = product(
+        [datetime.strptime(d, "%Y-%m-%d") for d in ["2020-01-15", "2020-01-22"]],
+        ["a", "b"],
+        ["young", "old"],
+        range(1, 4)
+    )
+    for reference_date, location, age_group, h in group_horizon_iterable:
         expected_values = (
             long_model_out
-            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group)
-                    & (pl.col("horizon") == h))
+            .filter(
+                (pl.col("reference_date") == reference_date) &
+                (pl.col("location") == location) &
+                (pl.col("age_group") == age_group) &
+                (pl.col("horizon") == h)
+            )
             [:, "value"]
             .to_numpy()
             .flatten()
@@ -44,7 +58,11 @@ def test_pivot_horizon_positive_horizon(long_model_out, monkeypatch):
         )
         actual_values = (
             wide_model_out
-            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
+            .filter(
+                (pl.col("reference_date") == reference_date) &
+                (pl.col("location") == location) &
+                (pl.col("age_group") == age_group)
+            )
             [:, f"postpredict_horizon{h}"]
             .to_numpy()
             .flatten()
@@ -74,21 +92,34 @@ def test_pivot_horizon_negative_horizon(long_model_out, monkeypatch):
     tdp.feat_cols = ["location", "age_group", "population"]
     wide_model_out = tdp._pivot_horizon(
         model_out=model_out,
+        reference_time_col="reference_date",
         horizon_col="horizon",
         idx_col="output_type_id",
         pred_col="value"
     )
     
-    # expected columns: everything in tdp.key_cols + tdp.feat_cols + "output_type" + "output_type_id" + f"postpredict_horizon{h}"
-    expected_cols = set(tdp.key_cols + tdp.feat_cols + ["output_type", "output_type_id"] + [f"postpredict_horizon{h}" for h in range(-1, 2)])
+    # expected columns
+    expected_cols = set(tdp.key_cols + tdp.feat_cols +
+                        ["reference_date", "output_type", "output_type_id"] +
+                        [f"postpredict_horizon{h}" for h in range(-1, 2)])
     assert set(wide_model_out.columns) == expected_cols
     
     # same values within each horizon/group
-    for location, age_group, h in product(["a", "b"], ["young", "old"], range(-1, 2)):
+    group_horizon_iterable = product(
+        [datetime.strptime(d, "%Y-%m-%d") for d in ["2020-01-15", "2020-01-22"]],
+        ["a", "b"],
+        ["young", "old"],
+        range(-1, 2)
+    )
+    for reference_date, location, age_group, h in group_horizon_iterable:
         expected_values = (
             model_out
-            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group)
-                    & (pl.col("horizon") == h))
+            .filter(
+                (pl.col("reference_date") == reference_date) &
+                (pl.col("location") == location) &
+                (pl.col("age_group") == age_group) &
+                (pl.col("horizon") == h)
+            )
             [:, "value"]
             .to_numpy()
             .flatten()
@@ -96,7 +127,11 @@ def test_pivot_horizon_negative_horizon(long_model_out, monkeypatch):
         )
         actual_values = (
             wide_model_out
-            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
+            .filter(
+                (pl.col("reference_date") == reference_date) &
+                (pl.col("location") == location) &
+                (pl.col("age_group") == age_group)
+            )
             [:, f"postpredict_horizon{h}"]
             .to_numpy()
             .flatten()
@@ -130,21 +165,34 @@ def test_pivot_horizon_diff_sample_count_by_group(long_model_out, monkeypatch):
     tdp.feat_cols = ["location", "age_group", "population"]
     wide_model_out = tdp._pivot_horizon(
         model_out=model_out,
+        reference_time_col="reference_date",
         horizon_col="horizon",
         idx_col="output_type_id",
         pred_col="value"
     )
     
-    # expected columns: everything in tdp.key_cols + tdp.feat_cols + "output_type" + "output_type_id" + f"postpredict_horizon{h}"
-    expected_cols = set(tdp.key_cols + tdp.feat_cols + ["output_type", "output_type_id"] + [f"postpredict_horizon{h}" for h in range(1, 4)])
+    # expected columns
+    expected_cols = set(tdp.key_cols + tdp.feat_cols +
+                        ["reference_date", "output_type", "output_type_id"] +
+                        [f"postpredict_horizon{h}" for h in range(1, 4)])
     assert set(wide_model_out.columns) == expected_cols
     
     # same values within each horizon/group
-    for location, age_group, h in product(["a", "b"], ["young", "old"], range(1, 4)):
+    group_horizon_iterable = product(
+        [datetime.strptime(d, "%Y-%m-%d") for d in ["2020-01-15", "2020-01-22"]],
+        ["a", "b"],
+        ["young", "old"],
+        range(1, 4)
+    )
+    for reference_date, location, age_group, h in group_horizon_iterable:
         expected_values = (
             model_out
-            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group)
-                    & (pl.col("horizon") == h))
+            .filter(
+                (pl.col("reference_date") == reference_date) &
+                (pl.col("location") == location) &
+                (pl.col("age_group") == age_group) &
+                (pl.col("horizon") == h)
+            )
             [:, "value"]
             .to_numpy()
             .flatten()
@@ -152,7 +200,11 @@ def test_pivot_horizon_diff_sample_count_by_group(long_model_out, monkeypatch):
         )
         actual_values = (
             wide_model_out
-            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
+            .filter(
+                (pl.col("reference_date") == reference_date) &
+                (pl.col("location") == location) &
+                (pl.col("age_group") == age_group)
+            )
             [:, f"postpredict_horizon{h}"]
             .to_numpy()
             .flatten()
@@ -188,6 +240,7 @@ def test_pivot_horizon_diff_sample_count_by_horizon_same_group_errors(long_model
     with pytest.raises(ValueError):
         tdp._pivot_horizon(
             model_out=model_out,
+            reference_time_col="reference_date",
             horizon_col="horizon",
             idx_col="output_type_id",
             pred_col="value"
@@ -203,7 +256,9 @@ def test_pivot_horizon_missing_horizon_errors(long_model_out, monkeypatch):
     tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
     
     model_out = long_model_out.filter(
-        ~((pl.col("location") == "a") & (pl.col("age_group") == "young") & (pl.col("horizon") == 2))
+        ~((pl.col("reference_date") == datetime.strptime("2020-01-15", "%Y-%m-%d")) &
+          (pl.col("location") == "a") & (pl.col("age_group") == "young") &
+          (pl.col("horizon") == 2))
     )
     
     tdp.key_cols = ["location", "age_group"]
@@ -213,6 +268,7 @@ def test_pivot_horizon_missing_horizon_errors(long_model_out, monkeypatch):
     with pytest.raises(ValueError):
         tdp._pivot_horizon(
             model_out=model_out,
+            reference_time_col="reference_date",
             horizon_col="horizon",
             idx_col="output_type_id",
             pred_col="value"

@@ -65,20 +65,20 @@ def test_energy_score():
         "energy_score": [5.8560677725938221627, 5.9574451598773787708]
     })
     
-    actual_scores_df = energy_score(model_out_wide = model_out_wide,
-                                    obs_data_wide = obs_data_wide,
-                                    key_cols = ["location", "date"],
-                                    pred_cols = ["horizon1", "horizon2", "horizon3"],
-                                    obs_cols = ["value_lead1", "value_lead2", "value_lead3"],
-                                    reduce_mean = False)
+    actual_scores_df = energy_score(model_out_wide=model_out_wide,
+                                    obs_data_wide=obs_data_wide,
+                                    key_cols=["location", "date"],
+                                    pred_cols=["horizon1", "horizon2", "horizon3"],
+                                    obs_cols=["value_lead1", "value_lead2", "value_lead3"],
+                                    reduce_mean=False)
     
-    assert_frame_equal(actual_scores_df, expected_scores_df, atol = 1e-19)
+    assert_frame_equal(actual_scores_df, expected_scores_df, check_row_order=False, atol=1e-19)
     
     expected_mean_score = np.mean([5.8560677725938221627, 5.9574451598773787708])
-    actual_mean_score = energy_score(model_out_wide = model_out_wide,
-                                    obs_data_wide = obs_data_wide,
-                                    key_cols = ["location", "date"],
-                                    pred_cols = ["horizon1", "horizon2", "horizon3"],
-                                    obs_cols = ["value_lead1", "value_lead2", "value_lead3"],
-                                    reduce_mean = True)
+    actual_mean_score = energy_score(model_out_wide=model_out_wide,
+                                     obs_data_wide=obs_data_wide,
+                                     key_cols=["location", "date"],
+                                     pred_cols=["horizon1", "horizon2", "horizon3"],
+                                     obs_cols=["value_lead1", "value_lead2", "value_lead3"],
+                                     reduce_mean=True)
     assert actual_mean_score == pytest.approx(expected_mean_score)
