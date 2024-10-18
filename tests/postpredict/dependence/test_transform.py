@@ -10,6 +10,8 @@ def test_transform(obs_data, long_model_out, templates, long_expected_final, mon
     # this tests the full transformation pipeline defined in
     # TimeDependencePostprocessor, *other than* the _build_templates method,
     # which is to be implemented by a subclass of the abstract base class.
+    # (Note, this means we also do not directly test _build_train_X_Y here,
+    # since that feeds into _build_templates.)
     # For this test, we use the fixed templates defined as a test fixture.
     
     # define a concrete subclass of TimeDependencePostprocessor whose

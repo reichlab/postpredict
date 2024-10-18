@@ -104,3 +104,37 @@ def test_build_train_X_Y_negative_horizons(obs_data, monkeypatch):
     
     assert_frame_equal(tdp.train_X, expected_train_X)
     assert_frame_equal(tdp.train_Y, expected_train_Y)
+
+
+def test_build_train_X_Y_mask(obs_data, monkeypatch):
+    # we use monkeypatch to remove abstract methods from the
+    # TimeDependencePostprocessor class, allowing us to create an object of
+    # that class so as to test the non-abstract _build_train_X_Y method it defines.
+    # See https://stackoverflow.com/a/77748100
+    monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
+    tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
+    tdp.df = obs_data
+    tdp.key_cols = ["location", "age_group"]
+    tdp.time_col = "date",
+    tdp.obs_col = "value"
+    tdp.feat_cols = ["location", "age_group", "date"]
+
+    mask = (obs_data["date"] <= datetime.strptime("2020-01-02", "%Y-%m-%d")) \
+        | (obs_data["date"] >= datetime.strptime("2020-01-06", "%Y-%m-%d"))
+    tdp._build_train_X_Y(1, 4, obs_mask = mask)
+    
+    expected_train_X = pl.DataFrame({
+        "location": ["a"] * 6 + ["b"] * 6,
+        "age_group": (["young"] * 3 + ["old"] * 3) * 2,
+        "date": [datetime.strptime(d, "%Y-%m-%d") for d in ["2020-01-01", "2020-01-02", "2020-01-06"]] * 4
+    })
+    
+    expected_train_Y = pl.DataFrame({
+        "value_shift_p1": [11, 12, 16] + [21, 22, 26] + [31, 32, 36] + [41, 42, 46],
+        "value_shift_p2": [12, 13, 17] + [22, 23, 27] + [32, 33, 37] + [42, 43, 47],
+        "value_shift_p3": [13, 14, 18] + [23, 24, 28] + [33, 34, 38] + [43, 44, 48],
+        "value_shift_p4": [14, 15, 19] + [24, 25, 29] + [34, 35, 39] + [44, 45, 49]
+    })
+    
+    assert_frame_equal(tdp.train_X, expected_train_X)
+    assert_frame_equal(tdp.train_Y, expected_train_Y)
