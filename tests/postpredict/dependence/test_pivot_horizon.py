@@ -21,13 +21,11 @@ def test_pivot_horizon_positive_horizon(long_model_out, monkeypatch):
     tdp.time_col = "date",
     tdp.obs_col = "value"
     tdp.feat_cols = ["location", "age_group", "population"]
-    wide_model_out = tdp._pivot_horizon(
-        model_out=long_model_out,
-        reference_time_col="reference_date",
-        horizon_col="horizon",
-        idx_col="output_type_id",
-        pred_col="value"
-    )
+    tdp.reference_time_col="reference_date"
+    tdp.horizon_col="horizon"
+    tdp.idx_col="output_type_id"
+    tdp.pred_col="value"
+    wide_model_out = tdp._pivot_horizon(model_out=long_model_out)
     
     # expected columns
     expected_cols = set(tdp.key_cols + tdp.feat_cols +
@@ -90,13 +88,11 @@ def test_pivot_horizon_negative_horizon(long_model_out, monkeypatch):
     tdp.time_col = "date",
     tdp.obs_col = "value"
     tdp.feat_cols = ["location", "age_group", "population"]
-    wide_model_out = tdp._pivot_horizon(
-        model_out=model_out,
-        reference_time_col="reference_date",
-        horizon_col="horizon",
-        idx_col="output_type_id",
-        pred_col="value"
-    )
+    tdp.reference_time_col="reference_date"
+    tdp.horizon_col="horizon"
+    tdp.idx_col="output_type_id"
+    tdp.pred_col="value"
+    wide_model_out = tdp._pivot_horizon(model_out=model_out)
     
     # expected columns
     expected_cols = set(tdp.key_cols + tdp.feat_cols +
@@ -163,13 +159,11 @@ def test_pivot_horizon_diff_sample_count_by_group(long_model_out, monkeypatch):
     tdp.time_col = "date",
     tdp.obs_col = "value"
     tdp.feat_cols = ["location", "age_group", "population"]
-    wide_model_out = tdp._pivot_horizon(
-        model_out=model_out,
-        reference_time_col="reference_date",
-        horizon_col="horizon",
-        idx_col="output_type_id",
-        pred_col="value"
-    )
+    tdp.reference_time_col="reference_date"
+    tdp.horizon_col="horizon"
+    tdp.idx_col="output_type_id"
+    tdp.pred_col="value"
+    wide_model_out = tdp._pivot_horizon(model_out=model_out)
     
     # expected columns
     expected_cols = set(tdp.key_cols + tdp.feat_cols +
@@ -237,14 +231,12 @@ def test_pivot_horizon_diff_sample_count_by_horizon_same_group_errors(long_model
     tdp.time_col = "date",
     tdp.obs_col = "value"
     tdp.feat_cols = ["location", "age_group", "population"]
+    tdp.reference_time_col="reference_date"
+    tdp.horizon_col="horizon"
+    tdp.idx_col="output_type_id"
+    tdp.pred_col="value"
     with pytest.raises(ValueError):
-        tdp._pivot_horizon(
-            model_out=model_out,
-            reference_time_col="reference_date",
-            horizon_col="horizon",
-            idx_col="output_type_id",
-            pred_col="value"
-        )
+        tdp._pivot_horizon(model_out=model_out)
 
 
 def test_pivot_horizon_missing_horizon_errors(long_model_out, monkeypatch):
@@ -265,11 +257,9 @@ def test_pivot_horizon_missing_horizon_errors(long_model_out, monkeypatch):
     tdp.time_col = "date",
     tdp.obs_col = "value"
     tdp.feat_cols = ["location", "age_group", "population"]
+    tdp.reference_time_col="reference_date"
+    tdp.horizon_col="horizon"
+    tdp.idx_col="output_type_id"
+    tdp.pred_col="value"
     with pytest.raises(ValueError):
-        tdp._pivot_horizon(
-            model_out=model_out,
-            reference_time_col="reference_date",
-            horizon_col="horizon",
-            idx_col="output_type_id",
-            pred_col="value"
-        )
+        tdp._pivot_horizon(model_out=model_out)

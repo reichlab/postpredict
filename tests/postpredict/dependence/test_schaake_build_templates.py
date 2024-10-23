@@ -9,7 +9,7 @@ from postpredict.dependence import Schaake
 
 def test_schaake_build_templates_equal_weights(obs_data, wide_model_out):
     ss = Schaake()
-    ss.df = obs_data
+    ss.target_data_train = obs_data
     ss.key_cols = ["location", "age_group"]
     ss.time_col = "date",
     ss.obs_col = "value"
@@ -50,7 +50,7 @@ def test_schaake_build_templates_unequal_weights(obs_data, wide_model_out):
             return weights
     
     ss = Schaake(weighter = PopSizeWeighter())
-    ss.df = obs_data
+    ss.target_data_train = obs_data
     ss.key_cols = ["location", "age_group"]
     ss.time_col = "date",
     ss.obs_col = "value"
@@ -71,7 +71,7 @@ def test_schaake_build_templates_unequal_weights(obs_data, wide_model_out):
         expected_freqs = (
             obs_data
             .with_columns(
-                weight_unnormalized = (pl.col("age_group") == age_group).cast(int) * (pl.col("date") < datetime.strptime("2020-01-01", "%Y-%m-%d") + timedelta(6)).cast(int) * pl.col("population")
+                weight_unnormalized = (pl.col("age_group") == age_group).cast(int) * (pl.col("date") < datetime.strptime("2020-01-14", "%Y-%m-%d") + timedelta(6)).cast(int) * pl.col("population")
             )
             .with_columns(
                 weight = pl.col("weight_unnormalized") / pl.col("weight_unnormalized").sum(),
@@ -109,7 +109,7 @@ def test_schaake_build_templates_unequal_weights(obs_data, wide_model_out):
 
 def test_schaake_build_templates_reproducible(obs_data, wide_model_out):
     ss = Schaake(rng = np.random.default_rng(42))
-    ss.df = obs_data
+    ss.target_data_train = obs_data
     ss.key_cols = ["location", "age_group"]
     ss.time_col = "date",
     ss.obs_col = "value"
@@ -119,7 +119,7 @@ def test_schaake_build_templates_reproducible(obs_data, wide_model_out):
     templates_1 = ss._build_templates(pl.concat([wide_model_out] * n_times))
 
     ss = Schaake(rng = np.random.default_rng(42))
-    ss.df = obs_data
+    ss.target_data_train = obs_data
     ss.key_cols = ["location", "age_group"]
     ss.time_col = "date",
     ss.obs_col = "value"

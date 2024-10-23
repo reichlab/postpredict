@@ -167,6 +167,6 @@ def obs_data():
         "location": ["a"] * 20 + ["b"] * 20,
         "population": [100.0] * 10 + [150.0] * 10 + [200.0] * 10 + [250.0] * 10,
         "age_group": (["young"] * 10 + ["old"] * 10) * 2,
-        "date": [datetime.strptime("2020-01-01", "%Y-%m-%d") + timedelta(i) for i in range(10)] * 4,
+        "date": [datetime.strptime("2020-01-14", "%Y-%m-%d") + timedelta(i) for i in range(10)] * 4,
         "value": list(range(10, 50))
     })

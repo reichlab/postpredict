@@ -25,20 +25,19 @@ def test_transform(obs_data, long_model_out, templates, long_expected_final, mon
             return pl.DataFrame(templates)
     
     tdp = TestPostprocessor(rng = np.random.default_rng(42))
-    tdp.df = obs_data
+    tdp.target_data_train = obs_data
+    tdp.model_out_train = None
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
     tdp.obs_col = "value"
     tdp.feat_cols = ["location", "age_group", "population"]
+    tdp.reference_time_col="reference_date"
+    tdp.horizon_col="horizon"
+    tdp.pred_col="value"
+    tdp.idx_col="output_type_id"
     
     # perform the transform operation
-    actual_final = tdp.transform(
-        model_out=long_model_out,
-        reference_time_col="reference_date",
-        horizon_col="horizon",
-        pred_col="value",
-        idx_col="output_type_id"
-    )
+    actual_final = tdp.transform(model_out=long_model_out)
     
     # Challenge: tdp.transform performs the transformation on the
     # groups defined by combinations of location and age_group in a random
